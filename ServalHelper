@@ -1,0 +1,146 @@
+#!/usr/bin/env python
+
+import argparse
+import os, sys
+import shutil
+import subprocess
+
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Serval Helper Script')
+    mutex_group = parser.add_mutually_exclusive_group()
+    mutex_group.add_argument('-c', '--check', help='check if all requirements are met', action='store_true')
+    mutex_group.add_argument('-d', '--download', help='download Serval from Github', action='store_true')
+    mutex_group.add_argument('-w', '--wipe', help='wipe all data in Rhizome Store', action='store_true')
+    mutex_group.add_argument('-r', '--remove', help='remove every occurrence of Serval', action='store_true')
+
+    sub_mutex_group = parser.add_mutually_exclusive_group()
+    sub_mutex_group.add_argument('-m', '--make', help='make Serval', metavar='interface')
+    sub_mutex_group.add_argument('-a', '--all', help='check and make in one go', metavar='interface')
+
+    dir_group = parser.add_argument_group()
+    dir_group.add_argument('-p', '--path', help='install path')
+
+    return parser.parse_args()
+
+def check_requirements():
+    if which('git'):
+        print('#### git is installed. ####')
+    else:
+        print('#### git is not installed! Serval can\'t be downloaded on this System unless you install it. ####')
+        sys.exit(1)
+    if which('autoconf'):
+        print('#### autoconf is installed. ####')
+    else:
+        print('#### autoconf is not installed! Serval can\'t be build on this System unless you install it. ####')
+        sys.exit(1)
+    if which('make'):
+        print('#### make is installed. ####')
+    else:
+        print('#### make is not installed! Serval can\'t be build on this System unless you install it. ####')
+        sys.exit(1)
+    print('#### All requirements are met. You are ready to download. Run "ServalHelper -d". ####')
+
+def build_serval(iface, path):
+    serval_config = """debug.rhizome=true
+debug.verbose=true
+interfaces.0.match=""" + iface + """
+interfaces.0.socket_type=dgram
+interfaces.0.type=ethernet"""
+
+    os.chdir('serval-dna')
+
+    try:
+        print('#### Running "autoconf" ####')
+        subprocess.check_output(['autoconf', '-i', '-f'])
+        print('#### Running "./configure" ####')
+        serval_config_path = path+'/serval-conf'
+        print(subprocess.check_output(['./configure', '--prefix='+serval_config_path]))
+        print('#### Running "make servald" ####')
+        print(subprocess.check_output(['make', 'servald']))
+        print('#### Writing "serval.conf" ####')
+        out = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')
+        path = ''
+        for line in out:
+            if 'SERVAL_ETC_PATH' in line:
+                path = line.split(':')[1]
+                break
+        os.makedirs(path)
+        with open(path + '/serval.conf', 'wb') as config_file:
+            config_file.write(serval_config)
+        print('#### Serval is ready to go. From a terminal change to the Serval folder and run "./servald start". ####\n#### For more information read the README. ####')
+    except subprocess.CalledProcessError as e:
+        print('#### Something went wrong. The Command "' + ' '.join(e.cmd) + '" could not be executed! Aborting. ####')
+        sys.exit(1)
+
+def clear_rhizome():
+    os.chdir('serval-dna')
+    pid_file_path = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')[1].split(':')[1] + '/servald.pid'
+    try:
+        with open(pid_file_path, 'r') as pid_file:
+            pid = pid_file.read()
+            os.kill(int(pid), 0)
+            peers = subprocess.check_output(['./servald', 'id', 'peers']).split('\n')
+            if len(peers) >= 4:
+                print('#### There are Serval Clients in the Network. ####')
+            print('#### Serval is still running. If you want to clean the Rhizome store you have to stop the Serval Client. Otherwise all deleted files will be restored immediately. Run this command again, when all clients are stopped. ####')
+            sys.exit(1)
+    except IOError as e:
+        raw_input('#### Your Serval is not running anymore, but it could not be checked if there are other Serval Clients running around you. Please make shure all Serval Clients are stopped and press any key to continue.')
+        rhizome_store_path = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')[-2].split(':')[1] + '/'
+        print('#### Cleaning Rhizome ####')
+        shutil.rmtree(rhizome_store_path)
+
+def download_serval():
+    print('#### Downloading Serval ####')
+    print(subprocess.check_output(['git', 'clone', 'https://github.com/umr-studenten/serval-dna.git', 'serval-dna']))
+    print('#### Serval was downloaded successfully. Now you have to build it with "ServalHelper -m interface" ####')
+
+def remove_serval():
+    print('#### Removing Serval ####')
+    shutil.rmtree('serval-dna')
+    shutil.rmtree('serval-conf')
+
+if __name__ == '__main__':
+    args = parse_args()
+    install_path = ''
+
+    if args.path:
+        if os.path.isabs(args.path):
+            install_path = args.path
+        else:
+            install_path = os.path.abspath(args.path)
+    else:
+        install_path = os.path.expanduser('~')
+
+    os.chdir(install_path)
+
+    if args.check:
+        check_requirements()
+    if args.download:
+        download_serval()
+    if args.make:
+        build_serval(args.make, install_path)
+    if args.all:
+        check_requirements()
+        download_serval()
+        build_serval(args.all, install_path)
+    if args.wipe:
+        clear_rhizome()
+    if args.remove:
+        remove_serval()
