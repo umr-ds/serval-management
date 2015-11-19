@@ -76,25 +76,18 @@ rhizome.contentfilters.[uint].regex=(str_nonempty) [regex] <"">
 This syntax differs from the two above. Here you can not only set one value per config flag but an array of different filters. Let's explain it with an example:
 
 ```
-rhizome.contentfilters.0.author=CB54C16A87E832F6AC87B396A2B3484A5200C5BD2DBB587F7B88C1942DEEDA09
-rhizome.contentfilters.0.bin=path/to/bin1
-(rhizome.contentfilters.0.extensions.[uint]=(str) [file-extension])
-rhizome.contentfilters.0.match_noextension=true
-rhizome.contentfilters.0.max_size=1024
-(rhizome.contentfilters.0.min_size=(uint64_scaled) [min filesize])
-(rhizome.contentfilters.0.regex=(str_nonempty) [regex])
+rhizome.contentfilters.0.author=DD336BC9C49F0D0576E60DF362B9293E828E1A9E3E326D3A8BA117D0F93F66E4
+rhizome.contentfilters.0.bin=path/to/bin2
+rhizome.contentfilters.0.extensions.0=jpg
+rhizome.contentfilters.0.extensions.1=png
+(rhizome.contentfilters.0.match_noextension=(boolean) [no extension])
+(rhizome.contentfilters.0.max_size=(uint64_scaled) [max filesize])
+rhizome.contentfilters.0.min_size=1049000
+rhizome.contentfilters.0.regex=.*IMG.*
 
-rhizome.contentfilters.1.author=DD336BC9C49F0D0576E60DF362B9293E828E1A9E3E326D3A8BA117D0F93F66E4
-rhizome.contentfilters.1.bin=path/to/bin2
-rhizome.contentfilters.1.extensions.0=jpg
-rhizome.contentfilters.1.extensions.1=png
-(rhizome.contentfilters.1.match_noextension=(boolean) [no extension])
-(rhizome.contentfilters.1.max_size=(uint64_scaled) [max filesize])
-rhizome.contentfilters.1.min_size=1049000
-rhizome.contentfilters.1.regex=.*IMG.*
-
-rhizome.contentfilters.2.author=7F129D389F0E0B59F48AF5DB75FE460818CC86F5E06902303EB8BD1BBE0E3C48
-rhizome.contentfilters.2.bin=path/to/bin3
+rhizome.contentfilters.1.author=7F129D389F0E0B59F48AF5DB75FE460818CC86F5E06902303EB8BD1BBE0E3C48
+rhizome.contentfilters.1.bin=path/to/bin3
+rhizome.contentfilters.1.regex=.*
 ```
 
 In the example above we have defined two filters. The flags in parentheses are not set. In the real config file you would just leave them out. Instead the default values are implicit evaluated.
