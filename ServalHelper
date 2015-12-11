@@ -36,7 +36,13 @@ def parse_args():
     dir_group = parser.add_argument_group()
     dir_group.add_argument('-p', '--path', help='install path')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(2)
+
+    return args
 
 def check_requirements():
     if which('git'):
@@ -64,6 +70,9 @@ interfaces.0.socket_type=dgram
 interfaces.0.type=ethernet"""
 
     os.chdir('serval-dna')
+    orig_path = path;
+    if orig_path[-1] != '/':
+        orig_path += '/'
 
     try:
         print('#### Running "autoconf" ####')
@@ -83,7 +92,7 @@ interfaces.0.type=ethernet"""
         os.makedirs(path)
         with open(path + '/serval.conf', 'wb') as config_file:
             config_file.write(serval_config)
-        print('#### Serval is ready to go. From a terminal change to the Serval folder and run "./servald start". ####\n#### For more information read the README. ####')
+        print('#### Serval is ready to go. In a terminal change to %s and run "./servald start". The config is in %s. ####\n#### For more information read the README. ####' % (orig_path + 'serval-dna', serval_config_path))
     except subprocess.CalledProcessError as e:
         print('#### Something went wrong. The Command "' + ' '.join(e.cmd) + '" could not be executed! Aborting. ####')
         sys.exit(1)
@@ -108,7 +117,7 @@ def clear_rhizome():
 
 def download_serval():
     print('#### Downloading Serval ####')
-    print(subprocess.check_output(['git', 'clone', 'https://github.com/umr-studenten/serval-dna.git', 'serval-dna']))
+    print(subprocess.check_output(['git', 'clone', 'https://github.com/umr-studenten/serval-dna.git', '--branch', 'nicer-filters', 'serval-dna']))
     print('#### Serval was downloaded successfully. Now you have to build it with "ServalHelper -m interface" ####')
 
 def remove_serval():
@@ -127,6 +136,9 @@ if __name__ == '__main__':
             install_path = os.path.abspath(args.path)
     else:
         install_path = os.path.expanduser('~')
+
+    if install_path[-1] == '/':
+        install_path = install_path[:-1]
 
     os.chdir(install_path)
 

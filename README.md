@@ -1,8 +1,8 @@
-ServalHelper README
+# ServalHelper README #
 
 ServalHelper is a helperscript written in Python to support new users with their first serval steps. It provides help for downloading and building serval.
 
-First the usage:
+### Options and usage: ###
 
 ```
 usage: ServalHelper [-h] [-c | -d | -w | -r] [-m interface | -a interface] [-p PATH]
@@ -21,13 +21,13 @@ optional arguments:
 
   ```
 
-  With the `-c` option you can Check all Dependencies for serval. Note: it only checks the dependencies you absolutely need. But there is a configure, which checks more dependencies.
+  With the `-c` option you can Check all Dependencies for serval. Note: it only checks the dependencies you absolutely need. But there is a configure, which will be executed while installing. This checks more dependencies.
 
   With the `-d` option serval will be downloaded per default to your home directory from GitHub.
 
-  With the `-m` interface option serval will be build and all configurations and required folders are per default created in $HOME/serval-conf/. The interface is the networkinterface where serval will communicate with other serval clients.
+  With the `-m interface` option serval will be build and all configurations and required folders are per default created in $HOME/serval-conf/. The interface is the networkinterface where serval will communicate with other serval clients.
 
-  With the `-a` interface is the same as `-c` `-d` and `-m` interface.
+  With the `-a interface` is the same as `-c` `-d` and `-m interface`.
 
   The `-w` option wipes your Rhizome store. But be careful. If you really want to wipe everything from Rhizome, you have to stop your serval and all other serval clients in the network otherwise your serval will immediately be a mess again.
 
@@ -36,3 +36,16 @@ optional arguments:
   You can change the installationpath with the `-p` option. It has to be a absolute path. If not, ServalHelper will change it to an absolute path.
 
   If you have questions or you find a bug please contact me: Sterz@students.uni-marburg.de
+
+### Steps ###
+If you want to install Serval initially, just run `$ ./ServalHelper -a interface`. This will download Serval, build it and install it in your Homedirectory. With the options explained above you can just download, check or install Serval.
+
+If you want to do everything manually, just follow these steps:
+
+```
+$ ./ServalHelper -c [-p PATH]
+$ ./ServalHelper -d [-p PATH]
+$ ./ServalHelper -m interface [-p PATH]
+```
+
+Note: `PATH` has to be every time the same!
