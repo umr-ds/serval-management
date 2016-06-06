@@ -50,10 +50,10 @@ def check_requirements():
     else:
         print('#### git is not installed! Serval can\'t be downloaded on this System unless you install it. ####')
         sys.exit(1)
-    if which('autoconf'):
-        print('#### autoconf is installed. ####')
+    if which('autoreconf'):
+        print('#### autoreconf is installed. ####')
     else:
-        print('#### autoconf is not installed! Serval can\'t be build on this System unless you install it. ####')
+        print('#### autoreconf is not installed! Serval can\'t be build on this System unless you install it. ####')
         sys.exit(1)
     if which('make'):
         print('#### make is installed. ####')
@@ -75,8 +75,8 @@ interfaces.0.type=ethernet"""
         orig_path += '/'
 
     try:
-        print('#### Running "autoconf" ####')
-        subprocess.check_output(['autoconf', '-i', '-f'])
+        print('#### Running "autoreconf" ####')
+        subprocess.check_output(['autoreconf', '-i', '-f', '-I', 'm4'])
         print('#### Running "./configure" ####')
         serval_config_path = path+'/serval-conf'
         print(subprocess.check_output(['./configure', '--prefix='+serval_config_path]))
