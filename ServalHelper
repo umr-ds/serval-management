@@ -5,6 +5,14 @@ import os, sys
 import shutil
 import subprocess
 
+class colors:
+    HEADER = '\033[1;95m'
+    OKBLUE = '\033[1;94m'
+    OKGREEN = '\033[1;92m'
+    WARNING = '\033[1;93m'
+    FAIL = '\033[1;91m'
+    END = '\033[0m'
+
 def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -45,24 +53,42 @@ def parse_args():
     return args
 
 def check_requirements():
+    print(colors.HEADER + "Checking Requirements" + colors.END)
     if which('git'):
-        print('#### git is installed. ####')
+        print(colors.OKGREEN + 'git is installed.'  + colors.END)
     else:
-        print('#### git is not installed! Serval can\'t be downloaded on this System unless you install it. ####')
+        print(colors.WARNING + 'git is not installed! Serval can\'t be downloaded on this System unless you install it.' + colors.END)
         sys.exit(1)
-    if which('autoreconf'):
-        print('#### autoreconf is installed. ####')
+    if which('autoconf'):
+        print(colors.OKGREEN + 'autoconf is installed.' + colors.END)
     else:
-        print('#### autoreconf is not installed! Serval can\'t be build on this System unless you install it. ####')
+        print(colors.WARNING + 'autoconf is not installed! Serval can\'t be build on this System unless you install it.' + colors.END)
         sys.exit(1)
     if which('make'):
-        print('#### make is installed. ####')
+        print(colors.OKGREEN + 'make is installed.' + colors.END)
     else:
-        print('#### make is not installed! Serval can\'t be build on this System unless you install it. ####')
+        print(colors.WARNING + 'make is not installed! Serval can\'t be build on this System unless you install it.' + colors.END)
         sys.exit(1)
-    print('#### All requirements are met. You are ready to download. Run "ServalHelper -d". ####')
+    print(colors.OKGREEN + 'All requirements are met. You are ready to download. Run "ServalHelper -d".' + colors.END)
+
+def install_libsodium():
+    print(colors.HEADER + 'Installing libsodium' + colors.END)
+    ldconfig_output = subprocess.check_output(('ldconfig', '-p'))
+    if 'sodium' in ldconfig_output:
+	print(colors.OKGREEN + 'Libsodium already installed.' + colors.END)
+    else:
+	subprocess.call(('wget', 'https://download.libsodium.org/libsodium/releases/libsodium-1.0.10.tar.gz'))
+	subprocess.call(('tar', 'xf', 'libsodium-1.0.10.tar.gz'))
+	os.chdir('libsodium-1.0.10')
+	subprocess.call(('./autogen.sh'))
+	subprocess.call(('./configure'))
+	subprocess.call(('make && make check'), shell=True)
+	subprocess.call(('sudo make install'), shell=True)
+	subprocess.call(('sudo ldconfig'), shell=True)
+	os.chdir('..')
 
 def build_serval(iface, path):
+    print(colors.HEADER + 'Building Serval' + colors.END)
     serval_config = """debug.rhizome=true
 debug.verbose=true
 interfaces.0.match=""" + iface + """
@@ -75,29 +101,33 @@ interfaces.0.type=ethernet"""
         orig_path += '/'
 
     try:
-        print('#### Running "autoreconf" ####')
-        subprocess.check_output(['autoreconf', '-i', '-f', '-I', 'm4'])
-        print('#### Running "./configure" ####')
+	install_libsodium()
+        print(colors.OKBLUE + 'Running "autoreconf"' + colors.END)
+        subprocess.call(['autoreconf', '-i', '-f', '-I', 'm4'])
+        print(colors.OKBLUE + 'Running "./configure"' + colors.END)
         serval_config_path = path+'/serval-conf'
-        print(subprocess.check_output(['./configure', '--prefix='+serval_config_path]))
-        print('#### Running "make servald" ####')
-        print(subprocess.check_output(['make', 'servald']))
-        print('#### Writing "serval.conf" ####')
+        subprocess.call(['./configure', '--prefix='+serval_config_path])
+        print(colors.OKBLUE + 'Running "make servald"' + colors.END)
+        subprocess.call(['make', 'servald'])
+        print(colors.OKBLUE + 'Writing "serval.conf"' + colors.END)
         out = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')
         path = ''
         for line in out:
             if 'SERVAL_ETC_PATH' in line:
                 path = line.split(':')[1]
                 break
-        os.makedirs(path)
+	if not os.path.exists(path):
+            os.makedirs(path)
         with open(path + '/serval.conf', 'wb') as config_file:
             config_file.write(serval_config)
-        print('#### Serval is ready to go. In a terminal change to %s and run "./servald start". The config is in %s. ####\n#### For more information read the README. ####' % (orig_path + 'serval-dna', serval_config_path))
+        print(colors.OKGREEN + 'Serval is ready to go. In a terminal change to %s and run "./servald start". The config is in %s.\nFor more information read the README.' % (orig_path + 'serval-dna', serval_config_path))
+	print(colors.END)
     except subprocess.CalledProcessError as e:
-        print('#### Something went wrong. The Command "' + ' '.join(e.cmd) + '" could not be executed! Aborting. ####')
+        print(colors.FAIL + 'Something went wrong. The Command "' + ' '.join(e.cmd) + '" could not be executed! Aborting.' + colors.END)
         sys.exit(1)
 
 def clear_rhizome():
+    print(colors.HEADER + 'Cleaning up the Rhizome store' + colors.END)
     os.chdir('serval-dna')
     pid_file_path = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')[1].split(':')[1] + '/servald.pid'
     try:
@@ -106,22 +136,25 @@ def clear_rhizome():
             os.kill(int(pid), 0)
             peers = subprocess.check_output(['./servald', 'id', 'peers']).split('\n')
             if len(peers) >= 4:
-                print('#### There are Serval Clients in the Network. ####')
-            print('#### Serval is still running. If you want to clean the Rhizome store you have to stop the Serval Client. Otherwise all deleted files will be restored immediately. Run this command again, when all clients are stopped. ####')
+                print(colors.WARNING + 'There are Serval Clients in the Network.' + colors.END)
+            print(colors.FAIL + 'Serval is still running. If you want to clean the Rhizome store you have to stop the Serval Client. Otherwise all deleted files will be restored immediately. Run this command again, when all clients are stopped.' + colors.END)
             sys.exit(1)
     except IOError as e:
-        raw_input('#### Your Serval is not running anymore, but it could not be checked if there are other Serval Clients running around you. Please make shure all Serval Clients are stopped and press any key to continue.')
+        raw_input(colors.OKBLUE + 'Your Serval is not running anymore, but it could not be checked if there are other Serval Clients running around you. Please make shure all Serval Clients are stopped and press any key to continue.' + colors.END)
         rhizome_store_path = subprocess.check_output(['./servald', 'config', 'paths']).split('\n')[-2].split(':')[1] + '/'
-        print('#### Cleaning Rhizome ####')
+        print(colors.OKBLUE + 'Cleaning Rhizome' + colors.END)
         shutil.rmtree(rhizome_store_path)
 
 def download_serval():
-    print('#### Downloading Serval ####')
-    print(subprocess.check_output(['git', 'clone', 'https://github.com/umr-studenten/serval-dna.git', '--branch', 'nicer-filters', 'serval-dna']))
-    print('#### Serval was downloaded successfully. Now you have to build it with "ServalHelper -m interface" ####')
+    print(colors.HEADER + 'Downloading Serval' + colors.END)
+    try:
+        subprocess.call(['git', 'clone', 'https://github.com/servalproject/serval-dna.git', '--branch', 'development', 'serval-dna'], stderr=subprocess.STDOUT)
+        print(colors.OKGREEN + 'Serval was downloaded successfully. Now you have to build it with "ServalHelper -m interface"' + colors.END)
+    except subprocess.CalledProcessError as e:
+        print(colors.FAIL + 'Could not clone Serval.\n' + e.output + colors.END)
 
 def remove_serval():
-    print('#### Removing Serval ####')
+    print(colors.HEADER + 'Removing Serval' + colors.END)
     shutil.rmtree('serval-dna')
     shutil.rmtree('serval-conf')
 
